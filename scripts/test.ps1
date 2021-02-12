@@ -9,16 +9,16 @@ chmod 755 azcopy
 Write-Output "./azcopy copy \"${Env:Source}\" \"${Env:Target}?${Env:SASToken}\" --from-to=BlobBlob --blob-type=PageBlob'
 ./azcopy copy "${Env:Source}" "${Env:Target}?${Env:SASToken}" --from-to=BlobBlob --blob-type=PageBlob
 
-for ($num = 1; $num -le 1000; $num++) {
-    $s = Invoke-WebRequest -Uri "${Env:Target}?${Env:SASToken}" -Method Head -SkipHttpErrorCheck
-	$sc = $s.StatusCode
-    Write-Output $sc
-    if ($sc -ne 200) {
-		Start-Sleep -Seconds 10
-	} else {
-		$num = 1000
-	}
-}
+#for ($num = 1; $num -le 1000; $num++) {
+#    $s = Invoke-WebRequest -Uri "${Env:Target}?${Env:SASToken}" -Method Head -SkipHttpErrorCheck
+#	$sc = $s.StatusCode
+#    Write-Output $sc
+#    if ($sc -ne 200) {
+#		Start-Sleep -Seconds 10
+#	} else {
+#		$num = 1000
+#	}
+#}
 
 $DeploymentScriptOutputs = @{}
 $DeploymentScriptOutputs['text'] = $output
