@@ -6,7 +6,7 @@ Write-Output $output
 Invoke-WebRequest -Uri https://mceus2sa.blob.core.windows.net/tools/linux/azcopy -OutFile azcopy -UseBasicParsing
 chmod 755 azcopy
 
-Write-Output "./azcopy copy \"${Env:Source}\" \"${Env:Target}?${Env:SASToken}\" --from-to=BlobBlob --blob-type=PageBlob'
+Write-Output "./azcopy copy ""${Env:Source}"" ""${Env:Target}?${Env:SASToken}"" --from-to=BlobBlob --blob-type=PageBlob"
 ./azcopy copy "${Env:Source}" "${Env:Target}?${Env:SASToken}" --from-to=BlobBlob --blob-type=PageBlob
 
 $DeploymentScriptOutputs = @{}
