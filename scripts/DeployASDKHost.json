@@ -1,0 +1,160 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "baseName": {
+            "defaultValue": "mcasdk",
+            "type": "String",
+            "metadata": {
+                "description": "The Prefix for the names of the ARM resources"
+            }
+        }
+    },
+    "variables": {
+        "location": "[resourceGroup().location]",
+        "networkSecurityGroupName": "[concat(parameters('baseName'), 'nsg1')]",
+        "networkSecurityGroupResourceId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]",
+        "publicIPAddressName": "[concat(parameters('baseName'), 'pipa1')]",
+        "publicIPAddressResourceId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]",
+        "virtualNetworkName": "[concat(parameters('baseName'), 'vn1')]",
+        "networkInterfaceName": "[concat(parameters('baseName'), 'ni1')]",
+        "networkInterfaceResourceId": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]",
+        "virtualMachineName": "[concat(parameters('baseName'), 'vm1')]",
+        "storageAccountName": "[concat(parameters('baseName'), 'sa1')]",
+        "storageAccountResourceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+        "storageAccountSasProperties": {
+            "signedServices": "b",
+            "signedPermission": "rwlc",
+            "signedExpiry": "2030-12-31T23:59:59Z",
+            "signedResourceTypes": "ocs"
+        },
+        "imageName": "[concat(parameters('baseName'), 'i1')]",
+        "imageResourceId": "[resourceId('Microsoft.Compute/images', variables('imageName'))]",
+        "containerGroupName": "[concat(parameters('baseName'), 'cg1')]",
+        "deploymentScriptName": "[concat(parameters('baseName'), 'ds1')]",
+        "deploymentScriptResourceId": "[resourceId('Microsoft.Resources/deploymentScripts', variables('deploymentScriptName'))]",
+        "sourceUri": "https://mceus2sa.blob.core.windows.net/images/asdk2008.vhd"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2021-01-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[variables('location')]",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "kind": "StorageV2",
+            "properties": {
+                "supportsHttpsTrafficOnly": true
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices",
+            "apiVersion": "2021-01-01",
+            "name": "[concat(variables('storageAccountName'), '/default')]",
+            "dependsOn": [
+                "[variables('storageAccountResourceId')]"
+            ],
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "properties": {
+                "deleteRetentionPolicy": {
+                    "enabled": false
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+            "apiVersion": "2021-01-01",
+            "name": "[concat(variables('storageAccountName'), '/default/images')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+            ],
+            "properties": {
+                "defaultEncryptionScope": "$account-encryption-key",
+                "denyEncryptionScopeOverride": false,
+                "publicAccess": "Blob"
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deploymentScripts",
+            "apiVersion": "2020-10-01",
+            "name": "[variables('deploymentScriptName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', variables('storageAccountName'), 'default', 'images')]"
+            ],
+            "kind": "AzurePowerShell",
+            "properties": {
+                "forceUpdateTag": "1",
+                "containerSettings": {
+                    "containerGroupName": "[variables('containerGroupName')]"
+                },
+                "storageAccountSettings": {
+                    "storageAccountName": "[variables('storageAccountName')]",
+                    "storageAccountKey": "[listKeys(variables('storageAccountResourceId'), '2021-01-01').keys[0].value]"
+                },
+                "azPowerShellVersion": "3.0",
+                "arguments": "[format(' -name \\\"Test parameter\\\" -sourceUri \\\"{0}\\\" -targetUri \\\"{1}images/asdk2008.vhd\\\" -targetSasToken \\\"{2}\\\"', variables('sourceUri'), reference(variables('storageAccountResourceId')).primaryEndpoints.blob, listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken)]",
+                "environmentVariables": [
+                    {
+                        "name": "Source",
+                        "value": "[variables('sourceUri')]"
+                    },
+                    {
+                        "name": "Target",
+                        "value": "[concat(reference(variables('storageAccountResourceId')).primaryEndpoints.blob, 'images/asdk2008.vhd')]"
+                    },
+                    {
+                        "name": "SASToken",
+                        "secureValue": "[listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken]"
+                    }
+                ],
+                "primaryScriptUri": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/DeployASDKHostImageScript1.ps1",
+                "timeout": "PT15M",
+                "cleanupPreference": "Always",
+                "retentionInterval": "PT1H"
+            }
+        },
+        {
+            "type": "Microsoft.Compute/images",
+            "apiVersion": "2019-07-01",
+            "name": "[variables('imageName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('deploymentScriptResourceId')]"
+            ],
+            "properties": {
+                "storageProfile": {
+                    "osDisk": {
+                        "osType": "Windows",
+                        "osState": "Generalized",
+                        "diskSizeGB": 120,
+                        "blobUri": "[concat(reference(variables('storageAccountResourceId')).primaryEndpoints.blob, 'images/asdk2008.vhd')]",
+                        "caching": "ReadWrite",
+                        "storageAccountType": "Premium_LRS"
+                    }
+                },
+                "hyperVGeneration": "V1"
+            }
+        }
+    ],
+    "outputs": {
+        "StorageAccount": {
+            "type": "Object",
+            "value": "[reference(variables('storageAccountResourceId'))]"
+        },
+        "storageAccountKeys": {
+            "type": "Object",
+            "value": "[listKeys(variables('storageAccountResourceId'), '2021-01-01')]"
+        },
+        "storageAccountSAS": {
+            "type": "Object",
+            "value": "[listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties'))]"
+        }
+    }
+}
