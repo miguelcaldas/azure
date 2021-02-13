@@ -15,7 +15,7 @@ Write-Output "./azcopy copy ""$sourceUri"" ""$targetUri"" --from-to=BlobBlob --b
 
 # Start-Sleep -Seconds 120
 for ($num = 1; $num -le 1000; $num++) {
-    $sc = (Invoke-WebRequest -Uri "${Env:Target}?${Env:SASToken}" -Method Head -SkipHttpErrorCheck).StatusCode
+    $sc = (Invoke-WebRequest -Uri "$targetUri" -Method Head -SkipHttpErrorCheck).StatusCode
     Write-Output "HTTP Status  $sc"
     if ($sc -ne 200) {
         Write-Output "Waiting 10 seconds..."
