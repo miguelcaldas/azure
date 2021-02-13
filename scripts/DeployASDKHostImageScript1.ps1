@@ -5,7 +5,7 @@ param(
     [string] [Parameter(Mandatory=$true)] $targetSasToken
 )
 
-Write-Output "Hello {0}. The Source is {1}, the Target is {2}, the TargetSasToken is {3}." -f $name, $sourceUri, $targetUri, $targetSasToken
+Write-Output "Hello ${name}. The Source is ${sourceUri}, the Target is ${targetUri}, the TargetSasToken is ${targetSasToken}."
 
 Invoke-WebRequest -Uri https://mceus2sa.blob.core.windows.net/tools/linux/azcopy -OutFile azcopy -UseBasicParsing
 chmod 755 azcopy
@@ -13,6 +13,7 @@ chmod 755 azcopy
 Write-Output "./azcopy copy ""${sourceUri}"" ""${targetUri}?${targetSasToken}"" --from-to=BlobBlob --blob-type=PageBlob"
 ./azcopy copy "${sourceUri}" "${targetUri}?${targetSasToken}" --from-to=BlobBlob --blob-type=PageBlob
 
+Write-Output "Waiting 180 seconds"
 Start-Sleep -Seconds 180
 # for ($num = 1; $num -le 1000; $num++) {
 #     $sc = (Invoke-WebRequest -Uri "$targetUri" -Method Head -SkipHttpErrorCheck).StatusCode
