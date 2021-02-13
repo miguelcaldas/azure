@@ -16,10 +16,22 @@
         "networkSecurityGroupResourceId": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]",
         "publicIPAddressName": "[concat(parameters('baseName'), 'pipa1')]",
         "publicIPAddressResourceId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicIPAddressName'))]",
+        "publicIPAddressType": "Static",
+        "publicIPAddressDnsName": "[parameters('baseName')]",
         "virtualNetworkName": "[concat(parameters('baseName'), 'vn1')]",
+        "virtualNetworkAddressPrefixes": [
+		    "10.1.0.0/16"
+		],
+		"virtualNetworkSubnetName": "sn1",
+		"virtualNetworkSubnetResourceId": "[resourceId('Microsoft.Network/vitrualNetworks/subnets', variables('virtualNetworkName'), variables('virtualNetworkSubnetName'))]",
+        "virtualNetworkSubnetAddressPrefix": "10.1.3.0/24",
         "networkInterfaceName": "[concat(parameters('baseName'), 'ni1')]",
         "networkInterfaceResourceId": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]",
         "virtualMachineName": "[concat(parameters('baseName'), 'vm1')]",
+        "virtualMachineSize": "Standard_E20s_v4"",
+		"osDiskSizeGB": 256,
+		"dataDiskCount": 6,
+		"dataDiskSizeGB": 512,
         "storageAccountName": "[concat(parameters('baseName'), 'sa1')]",
         "storageAccountResourceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
         "storageAccountSasProperties": {
@@ -33,7 +45,10 @@
         "containerGroupName": "[concat(parameters('baseName'), 'cg1')]",
         "deploymentScriptName": "[concat(parameters('baseName'), 'ds1')]",
         "deploymentScriptResourceId": "[resourceId('Microsoft.Resources/deploymentScripts', variables('deploymentScriptName'))]",
-        "sourceUri": "https://mceus2sa.blob.core.windows.net/images/asdk2008.vhd"
+        "sourceUri": "https://mceus2sa.blob.core.windows.net/images/asdk2008.vhd",
+        "deployImageScriptUri": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/DeployASDKHostImageScript1.ps1",
+		"postConfigScriptLocation": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/",
+        "postConfigScriptFilename": "post-config.ps1"
     },
     "resources": [
         {
@@ -114,7 +129,7 @@
                         "secureValue": "[listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken]"
                     }
                 ],
-                "primaryScriptUri": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/DeployASDKHostImageScript1.ps1",
+                "primaryScriptUri": "[variables('deployImageScriptUri')]",
                 "timeout": "PT15M",
                 "cleanupPreference": "Always",
                 "retentionInterval": "PT1H"
@@ -141,6 +156,189 @@
                 },
                 "hyperVGeneration": "V1"
             }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "apiVersion": "2020-07-01",
+            "name": "[variables('virtualNetworkName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": "[variables('virtualNetworkAddressPrefixes')]"
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('virtualNetworkSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('virtualNetworkSubnetAddressPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "apiVersion": "2020-05-01",
+            "name": "[variables('publicIpAddressName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "publicIPAddressVersion": "IPv4",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('publicIPAddressDnsName')]",
+                    "fqdn": "[concat(variables('publicIPAddressDnsName'), '.', variables('location'), '.cloudapp.azure.com')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "apiVersion": "2020-07-01",
+            "name": "[variables('networkSecurityGroupName')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "default-allow-rdp",
+                        "properties": {
+                            "priority": 1000,
+                            "sourceAddressPrefix": "*",
+                            "protocol": "Tcp",
+                            "destinationPortRange": "3389",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    },
+                    {
+                        "name": "allow-psremoting",
+                        "properties": {
+                            "priority": 1010,
+                            "sourceAddressPrefix": "*",
+                            "protocol": "Tcp",
+                            "destinationPortRange": "5985",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "*"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2020-07-01",
+            "name": "[variables('networkInterfaceName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('virtualNetworkResourceId'))]",
+                "[variables('publicIPAddressResourceId')]",
+                "[variables('networkSecurityGroupResourceId')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipc1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('virtualNetworkSubnetResourceId')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[variables('publicIPAddressResourceId')]"
+                            }
+                        }
+                    }
+                ],
+                "networkSecurityGroup": {
+                    "id": "[variables('networkSecurityGroupResourceId')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2020-06-01",
+            "name": "[variables('virtualMachineName')]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('networkInterfaceResourceId'))]",
+                "[variables('imageResourceId')]"
+            ],
+            "properties": {
+                "osProfile": {
+                    "computerName": "[variables('virtualMachineName')]",
+                    "adminUsername": "[variables('adminUsername')]",
+                    "adminPassword": "[variables('adminPassword')]",
+                    "windowsConfiguration": {
+                        "provisionVmAgent": true
+                    }
+                },
+                "hardwareProfile": {
+                    "vmSize": "[variables('virtualMachineSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "id": "[variables('imageResourceId')]"
+                    },
+                    "osDisk": {
+                        "createOption":"FromImage",
+                        "diskSizeGB": "[variables('osDiskSizeGB')]",
+                        "caching": "ReadWrite",
+                        "name": "[concat(variables('virtualMachineName'),'osd')]",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                    }
+                    },
+                    "copy": [{
+                            "name": "dataDisks",
+                            "count": "[variables('dataDiskCount')]",
+                            "input": {
+                                "createOption": "Empty",
+                                "lun": "[copyIndex('dataDisks')]",
+                                "name": "[concat(variables('virtualMachineName'), 'dd', copyIndex('dataDisks'))]",
+                                "diskSizeGB": "[variables('dataDiskSizeGB')]",
+                                "caching": "ReadOnly",
+                                "managedDisk": {
+                                    "storageAccountType": "Premium_LRS"
+                                }
+                            }
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[variables('networkInterfaceResourceId')]"
+                        }
+                    ]
+                },
+                "licenseType": "Windows_Server"
+            },
+            "resources": [
+                {
+                    "type": "extensions",
+                    "apiVersion": "2019-07-01",
+                    "name": "CustomScriptExtension",
+                    "location": "[variables('location')]",
+                    "dependsOn": [
+                        "[variables('virtualMachineName')]"
+                    ],
+                    "properties": {
+                        "publisher": "Microsoft.Compute",
+                        "type": "CustomScriptExtension",
+                        "typeHandlerVersion": "1.9",
+                        "autoUpgradeMinorVersion": true,
+                        "protectedSettings": {},
+                        "settings": {
+                            "fileUris": [
+                                "[concat(variables('postConfigScriptLocation'), variables('postConfigScriptFilename'))]"
+                            ],
+                            "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File ', parameters('postConfigScriptFilename'), ' -Username ', variables('adminUsername'), ' -Branch ', parameters('branch'), ' -ASDKImage ', variables('autoInstallASDKparameters'))]"
+                        }
+                    }
+                }
+            ] 
         }
     ],
     "outputs": {
