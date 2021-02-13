@@ -5,8 +5,7 @@ param(
     [string] [Parameter(Mandatory=$true)] $targetSasToken
 )
 
-$output = 'Hello {0}. The Source is {1}, the Target is {2}, the TargetSasToken is {3}.' -f $name, $sourceUri, $targetUri, $targetSasToken
-Write-Output $output
+Write-Output "Hello {0}. The Source is {1}, the Target is {2}, the TargetSasToken is {3}." -f $name, $sourceUri, $targetUri, $targetSasToken
 
 Invoke-WebRequest -Uri https://mceus2sa.blob.core.windows.net/tools/linux/azcopy -OutFile azcopy -UseBasicParsing
 chmod 755 azcopy
@@ -14,7 +13,7 @@ chmod 755 azcopy
 Write-Output "./azcopy copy ""${sourceUri}"" ""${targetUri}?${targetSasToken}"" --from-to=BlobBlob --blob-type=PageBlob"
 ./azcopy copy "${sourceUri}" "${targetUri}?${targetSasToken}" --from-to=BlobBlob --blob-type=PageBlob
 
-Start-Sleep -Seconds 120
+Start-Sleep -Seconds 180
 # for ($num = 1; $num -le 1000; $num++) {
 #     $sc = (Invoke-WebRequest -Uri "$targetUri" -Method Head -SkipHttpErrorCheck).StatusCode
 #     Write-Output "HTTP Status $sc"
@@ -27,4 +26,4 @@ Start-Sleep -Seconds 120
 # }
 
 $DeploymentScriptOutputs = @{}
-$DeploymentScriptOutputs['text'] = $output
+$DeploymentScriptOutputs['text'] = "Deployment Script ended..."
