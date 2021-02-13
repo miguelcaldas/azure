@@ -67,7 +67,7 @@ function DownloadWithRetry([string] $Uri, [string] $DownloadLocation, [int] $Ret
     }
 }
 
-
+exit
 
 $size = Get-Volume -DriveLetter c | Get-PartitionSupportedSize
 Resize-Partition -DriveLetter c -Size $size.sizemax
