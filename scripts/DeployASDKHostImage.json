@@ -99,7 +99,7 @@
                     "storageAccountKey": "[listKeys(variables('storageAccountResourceId'), '2021-01-01').keys[0].value]"
                 },
                 "azPowerShellVersion": "3.0",
-                "arguments": "[format(' -name \\\"Test parameter\\\" -sourceUri \\\"{0}\\\" -targetUri \\\"{1}images/asdk2008.vhd?{2}\\\"', variables('sourceUri'), reference(variables('storageAccountResourceId')).primaryEndpoints.blob, listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken)]",
+                "arguments": "[format(' -name \\\"Test parameter\\\" -sourceUri \\\"{0}\\\" -targetUri \\\"{1}images/asdk2008.vhd\\\" -targetSasToken \\\"{2}\\\"', variables('sourceUri'), reference(variables('storageAccountResourceId')).primaryEndpoints.blob, listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken)]",
                 "environmentVariables": [
                     {
                         "name": "Source",
