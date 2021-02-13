@@ -22,15 +22,15 @@
         "virtualMachineName": "[concat(parameters('baseName'), 'vm1')]",
         "storageAccountName": "[concat(parameters('baseName'), 'sa1')]",
         "storageAccountResourceId": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
-        "imageName": "[concat(parameters('baseName'), 'i1')]",
-        "imageResourceId": "[resourceId('Microsoft.Compute/images', variables('imageName'))]",
-        "containerGroupName": "[concat(parameters('baseName'), 'cg1')]",
         "storageAccountSasProperties": {
             "signedServices": "b",
             "signedPermission": "rwlc",
             "signedExpiry": "2030-12-31T23:59:59Z",
             "signedResourceTypes": "ocs"
         },
+        "imageName": "[concat(parameters('baseName'), 'i1')]",
+        "imageResourceId": "[resourceId('Microsoft.Compute/images', variables('imageName'))]",
+        "containerGroupName": "[concat(parameters('baseName'), 'cg1')]",
         "deploymentScriptName": "[concat(parameters('baseName'), 'ds1')]",
         "deploymentScriptResourceId": "[resourceId('Microsoft.Resources/deploymentScripts', variables('deploymentScriptName'))]",
         "sourceUri": "https://mceus2sa.blob.core.windows.net/images/asdk2008.vhd"
@@ -99,7 +99,7 @@
                     "storageAccountKey": "[listKeys(variables('storageAccountResourceId'), '2021-01-01').keys[0].value]"
                 },
                 "azPowerShellVersion": "3.0",
-                "arguments": "[format(' -name \\\"John Dole\\\" -sourceUri \\\"{0}\\\" -targetUri \\\"{1}images/asdk2008.vhd?{2}\\\"', variables('sourceUri'), reference(variables('storageAccountResourceId')).primaryEndpoints.blob, listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken)]",
+                "arguments": "[format(' -name \\\"Test parameter\\\" -sourceUri \\\"{0}\\\" -targetUri \\\"{1}images/asdk2008.vhd?{2}\\\"', variables('sourceUri'), reference(variables('storageAccountResourceId')).primaryEndpoints.blob, listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken)]",
                 "environmentVariables": [
                     {
                         "name": "Source",
@@ -114,7 +114,7 @@
                         "secureValue": "[listAccountSas(variables('StorageAccountName'), '2021-01-01', variables('storageAccountSasProperties')).accountSasToken]"
                     }
                 ],
-                "primaryScriptUri": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/test.ps1",
+                "primaryScriptUri": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/DeployASDKHostImageScript1.ps1",
                 "timeout": "PT15M",
                 "cleanupPreference": "Always",
                 "retentionInterval": "PT1H"
