@@ -11,8 +11,8 @@ Write-Output $output
 Invoke-WebRequest -Uri https://mceus2sa.blob.core.windows.net/tools/linux/azcopy -OutFile azcopy -UseBasicParsing
 chmod 755 azcopy
 
-Write-Output "./azcopy copy ""$sourceUri"" ""$targetUri?$targetSasToken"" --from-to=BlobBlob --blob-type=PageBlob"
-./azcopy copy "$sourceUri" "$targetUri?$targetSasToken" --from-to=BlobBlob --blob-type=PageBlob
+Write-Output "./azcopy copy ""${sourceUri}"" ""${targetUri}?${targetSasToken}"" --from-to=BlobBlob --blob-type=PageBlob"
+./azcopy copy "${sourceUri}" "${targetUri}?${targetSasToken}" --from-to=BlobBlob --blob-type=PageBlob
 
 # Start-Sleep -Seconds 120
 for ($num = 1; $num -le 1000; $num++) {
