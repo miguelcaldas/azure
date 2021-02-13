@@ -19,16 +19,18 @@
         "publicIPAddressType": "Static",
         "publicIPAddressDnsName": "[parameters('baseName')]",
         "virtualNetworkName": "[concat(parameters('baseName'), 'vn1')]",
+		"virtualNetworkResourceId": "[resourceId('Microsoft.Network/virtualNetworks', variables('virtualNetworkName'))]",
         "virtualNetworkAddressPrefixes": [
 		    "10.1.0.0/16"
 		],
 		"virtualNetworkSubnetName": "sn1",
-		"virtualNetworkSubnetResourceId": "[resourceId('Microsoft.Network/vitrualNetworks/subnets', variables('virtualNetworkName'), variables('virtualNetworkSubnetName'))]",
+		"virtualNetworkSubnetResourceId": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('virtualNetworkName'), variables('virtualNetworkSubnetName'))]",
         "virtualNetworkSubnetAddressPrefix": "10.1.3.0/24",
         "networkInterfaceName": "[concat(parameters('baseName'), 'ni1')]",
         "networkInterfaceResourceId": "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]",
         "virtualMachineName": "[concat(parameters('baseName'), 'vm1')]",
-        "virtualMachineSize": "Standard_E20s_v4"",
+        "virtualMachineResourceId": "[resourceId('Microsoft.Compute/virtualMachines', variables('virtualMachineName'))]",
+        "virtualMachineSize": "Standard_E20ds_v4",
 		"osDiskSizeGB": 256,
 		"dataDiskCount": 6,
 		"dataDiskSizeGB": 512,
@@ -48,7 +50,12 @@
         "sourceUri": "https://mceus2sa.blob.core.windows.net/images/asdk2008.vhd",
         "deployImageScriptUri": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/DeployASDKHostImageScript1.ps1",
 		"postConfigScriptLocation": "https://raw.githubusercontent.com/miguelcaldas/azure/master/scripts/",
-        "postConfigScriptFilename": "post-config.ps1"
+        "postConfigScriptFilename": "post-config.ps1",
+		"adminUsername": "Miguel",
+        "adminPassword": "Miguel1Caldas.",
+        "azureADTenant": "mcasdk.onmicrosoft.com",
+        "azureADGlobalAdmin": "admin@mcasdk.onmicrosoft.com",
+        "azureADGlobalAdminPassword": "Mcaldas1"
     },
     "resources": [
         {
@@ -170,7 +177,7 @@
                     {
                         "name": "[variables('virtualNetworkSubnetName')]",
                         "properties": {
-                            "addressPrefix": "[parameters('virtualNetworkSubnetAddressPrefix')]"
+                            "addressPrefix": "[variables('virtualNetworkSubnetAddressPrefix')]"
                         }
                     }
                 ]
@@ -232,7 +239,7 @@
             "name": "[variables('networkInterfaceName')]",
             "location": "[variables('location')]",
             "dependsOn": [
-                "[variables('virtualNetworkResourceId'))]",
+                "[variables('virtualNetworkResourceId')]",
                 "[variables('publicIPAddressResourceId')]",
                 "[variables('networkSecurityGroupResourceId')]"
             ],
@@ -262,7 +269,7 @@
             "name": "[variables('virtualMachineName')]",
             "location": "[variables('location')]",
             "dependsOn": [
-                "[variables('networkInterfaceResourceId'))]",
+                "[variables('networkInterfaceResourceId')]",
                 "[variables('imageResourceId')]"
             ],
             "properties": {
@@ -334,11 +341,35 @@
                             "fileUris": [
                                 "[concat(variables('postConfigScriptLocation'), variables('postConfigScriptFilename'))]"
                             ],
-                            "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File ', parameters('postConfigScriptFilename'), ' -Username ', variables('adminUsername'), ' -Branch ', parameters('branch'), ' -ASDKImage ', variables('autoInstallASDKparameters'))]"
+                            "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -File ', variables('postConfigScriptFilename'), ' -Username ', variables('adminUsername'), ' -Branch master -ASDKImage -AutoInstallASDK -AzureADTenant ', variables('azureADTenant'), ' -AzureADGlobalAdmin ', variables('azureADGlobalAdmin'), ' -AzureADGlobalAdminPass ', variables('AzureADGlobalAdminPassword'), ' -LocalAdminPass ', variables('adminPassword'))]"
                         }
                     }
                 }
             ] 
+        },
+		{
+            "type": "Microsoft.DevTestLab/schedules",
+            "apiVersion": "2016-05-15",
+            "name": "[concat('shutdown-computevm-', variables('virtualMachineName'))]",
+            "location": "[variables('location')]",
+            "dependsOn": [
+                "[variables('virtualMachineResourceId')]"
+            ],
+            "properties": {
+                "status": "Enabled",
+                "taskType": "ComputeVmShutdownTask",
+                "dailyRecurrence": {
+                    "time": "0500"
+                },
+                "timeZoneId": "W. Europe Standard Time",
+                "notificationSettings": {
+                    "status": "Disabled",
+                    "timeInMinutes": 15,
+					"emailRecipient": "miguelc@microsoft.com",
+                    "notificationLocale": "EN"
+                },
+                "targetResourceId": "[variables('virtualMachineResourceId')]"
+            }
         }
     ],
     "outputs": {
