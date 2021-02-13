@@ -13,7 +13,17 @@ chmod 755 azcopy
 Write-Output "./azcopy copy ""$sourceUri"" ""$targetUri"" --from-to=BlobBlob --blob-type=PageBlob"
 ./azcopy copy "$sourceUri" "$targetUri" --from-to=BlobBlob --blob-type=PageBlob
 
-Start-Sleep -Seconds 120
+# Start-Sleep -Seconds 120
+for ($num = 1; $num -le 1000; $num++) {
+    $sc = (Invoke-WebRequest -Uri "${Env:Target}?${Env:SASToken}" -Method Head -SkipHttpErrorCheck).StatusCode
+    Write-Output "HTTP Status  $sc"
+    if ($sc -ne 200) {
+        Write-Output "Waiting 10 seconds..."
+        Start-Sleep -Seconds 10
+    } else {
+        $num = 1000
+    }
+}
 
 $DeploymentScriptOutputs = @{}
 $DeploymentScriptOutputs['text'] = $output
